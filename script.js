@@ -1,18 +1,28 @@
-const usbSerial = 'COM4';
-const SerialPort = require('serialport').SerialPort;
-const axios = require('axios');
-const URL = 'http://localhost:3000';
-// let mega = new SerialPort('COM4', {
-//     baudRate: 9600
-// });
+const usbSerial = '/dev/ttyACM0';
+import { SerialPort } from 'serialport';
+import fetch from "node-fetch";
+const URL = 'http://localhost:8086/';
+const DATABASE = 'test';
+
+let mega = new SerialPort({
+    baudRate: 9600,
+    path: usbSerial
+});
+
+mega.on("data", (data) => {
+    writeData(parseInt(data));
+})
 
 
-function writeData(data) {
-    let influx = 'vote value='+data+' '+Date.now()+"\n";
-    axios.post(URL, {
-        headers: {
-            'Content-Type':  'text/plain'
-        },
-        influx
+async function writeData(data) {
+    return new Promise((resolve, reject) => {
+        let influx = 'vote value=' + data + ' ' + new Date().valueOf() + '000000' + '\n';
+        fetch(URL + 'write?db=' + DATABASE, {
+            method: 'POST',
+            headers: {
+                contentType: 'text/plain'
+            },
+            body: influx
+        }).then(r => resolve(r)).catch(e => reject(e.message))
     })
 }
